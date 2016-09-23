@@ -4,8 +4,16 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"regexp"
 	"sort"
+
+	flag "github.com/docker/docker/pkg/mflag"
+)
+
+var (
+	subnet, subnetmask  string
+	listExistingSubnets bool
 )
 
 func inc(ip net.IP) {
@@ -47,11 +55,24 @@ func subnetsInUse() []string {
 }
 
 func main() {
+	flag.StringVar(&subnet, []string{"s", "-subnet"}, "172.55.0.0", "Subnet. Default: 172.55.0.0")
+	flag.StringVar(&subnetmask, []string{"sm", "-subnetmask"}, "/29", "Subnetmask. Default: /29")
+	flag.BoolVar(&listExistingSubnets, []string{"ls", "-listExistingSubnets"}, false, "List Existing Subnets.")
+	flag.Parse()
+
 	subnetsInUse := subnetsInUse()
+
+	if listExistingSubnets {
+		for _, subnet := range subnetsInUse {
+			fmt.Println(subnet)
+		}
+		os.Exit(0)
+	}
+
 	if len(subnetsInUse) > 0 {
 		lastUsedNet := subnetsInUse[len(subnetsInUse)-1]
-		fmt.Println(nextRangeFirstIP(lastUsedNet))
+		fmt.Println(nextRangeFirstIP(lastUsedNet).String() + subnetmask)
 	} else {
-		fmt.Println("172.55.0.1")
+		fmt.Println(subnet + subnetmask)
 	}
 }
