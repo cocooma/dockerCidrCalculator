@@ -6,7 +6,6 @@ import (
 	"net"
 	"os"
 	"regexp"
-	"sort"
 
 	flag "github.com/docker/docker/pkg/mflag"
 )
@@ -50,7 +49,7 @@ func subnetsInUse() []string {
 			}
 		}
 	}
-	sort.Strings(subnets)
+	// sort.Strings(subnets)
 	return subnets
 }
 
