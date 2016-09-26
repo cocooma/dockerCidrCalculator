@@ -6,6 +6,8 @@ import (
 	"net"
 	"os"
 	"regexp"
+	"sort"
+	"strings"
 
 	flag "github.com/docker/docker/pkg/mflag"
 )
@@ -38,23 +40,36 @@ func nextRangeFirstIP(cidr string) net.IP {
 }
 
 func subnetsInUse() []string {
-	var subnets []string
+	var subnetsIndex []string
+	var sortedSubnets []string
+	subnetsmap := map[string]net.Addr{}
+
 	interfaces, _ := net.Interfaces()
 	for _, inter := range interfaces {
 		if addrs, err := inter.Addrs(); err == nil {
 			for _, addr := range addrs {
-				if ok, _ := regexp.MatchString("br-*", inter.Name); ok {
-					subnets = append(subnets, addr.String())
+				if ok, _ := regexp.MatchString("br-", inter.Name); ok {
+					if addr.(*net.IPNet).IP.To4() != nil {
+						sortip := fmt.Sprintf("%03d", (addr.(*net.IPNet)).IP.To4())
+						sortip = strings.Replace(sortip, " ", "", -1)
+						sortip = strings.Trim(sortip, "[,]")
+						subnetsIndex = append(subnetsIndex, sortip)
+						subnetsmap[sortip] = addr
+					}
 				}
 			}
 		}
 	}
-	// sort.Strings(subnets)
-	return subnets
+	sort.Strings(subnetsIndex)
+	for _, idx := range subnetsIndex {
+		sortedSubnets = append(sortedSubnets, subnetsmap[idx].String())
+	}
+
+	return sortedSubnets
 }
 
 func main() {
-	flag.StringVar(&subnet, []string{"s", "-subnet"}, "172.55.0.0", "Subnet. Default: 172.55.0.0")
+	flag.StringVar(&subnet, []string{"s", "-subnet"}, "10.127.0.0", "Subnet. Default: 10.127.0.0")
 	flag.StringVar(&subnetmask, []string{"sm", "-subnetmask"}, "/29", "Subnetmask. Default: /29")
 	flag.BoolVar(&listExistingSubnets, []string{"ls", "-listExistingSubnets"}, false, "List Existing Subnets.")
 	flag.Parse()
